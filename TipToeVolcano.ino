@@ -6,6 +6,10 @@ bool isChaos = false;
 bool isRevealed = false;
 bool isKiller = false;
 
+Timer eruptionTimer;
+#define ERUPTION_TIME 2000
+bool magmaFaces[6] = {false, false, false, false, false, false};
+
 void setup() {
   // put your setup code here, to run once:
   randomize();
@@ -31,7 +35,8 @@ void loop() {
       break;
   }
 
-  setValueSentOnAllFaces(signalState);
+  byte sendData = (isKiller << 2) | (signalState);
+  setValueSentOnAllFaces(sendData);
 
   buttonSingleClicked();
   buttonDoubleClicked();
@@ -60,7 +65,7 @@ void setupLoop() {
 
   FOREACH_FACE(f) {
     if (!isValueReceivedOnFaceExpired(f)) {//neighbor!
-      if (getLastValueReceivedOnFace(f) == HIDE) {
+      if (getSignalState(getLastValueReceivedOnFace(f)) == HIDE) {
         signalState = HIDE;
         setGrass();
         if (isChaos) {
@@ -79,9 +84,10 @@ void hideLoop() {
 
   FOREACH_FACE(f) {
     if (!isValueReceivedOnFaceExpired(f)) {//neighbor!
-      if (getLastValueReceivedOnFace(f) == DEATH) {
+      if (getSignalState(getLastValueReceivedOnFace(f)) == DEATH) {
         signalState = DEATH;
-      } else if (getLastValueReceivedOnFace(f) == RESET) {
+        eruptionTimer.set(ERUPTION_TIME);
+      } else if (getSignalState(getLastValueReceivedOnFace(f)) == RESET) {
         signalState = RESET;
       }
     }
@@ -91,6 +97,7 @@ void hideLoop() {
     isRevealed = true;
     if (isMagma) {
       signalState = DEATH;
+      eruptionTimer.set(ERUPTION_TIME);
       isKiller = true;
     }
   }
@@ -106,9 +113,9 @@ void deathLoop() {
 
   FOREACH_FACE(f) {
     if (!isValueReceivedOnFaceExpired(f)) {//neighbor!
-      if (getLastValueReceivedOnFace(f) == SETUP) {
+      if (getSignalState(getLastValueReceivedOnFace(f)) == SETUP) {
         signalState = SETUP;
-      } else if (getLastValueReceivedOnFace(f) == RESET) {
+      } else if (getSignalState(getLastValueReceivedOnFace(f)) == RESET) {
         signalState = RESET;
       }
     }
@@ -120,11 +127,19 @@ void resetLoop() {
 
   FOREACH_FACE(f) {
     if (!isValueReceivedOnFaceExpired(f)) {//neighbor!
-      if (getLastValueReceivedOnFace(f) == HIDE || getLastValueReceivedOnFace(f) == DEATH) {
+      if (getSignalState(getLastValueReceivedOnFace(f)) == HIDE || getSignalState(getLastValueReceivedOnFace(f)) == DEATH) {
         signalState = RESET;
       }
     }
   }
+}
+
+byte getSignalState(byte data) {
+  return (data & 3);
+}
+
+byte getIsKiller(byte data) {
+  return ((data >> 2) & 1);
 }
 
 void setupDisplay() {
@@ -156,8 +171,8 @@ void setupDisplay() {
   }
 }
 
-#define GRASS_HUE_LO 60
-#define GRASS_HUE_HI 100
+#define GRASS_HUE_LO 56
+#define GRASS_HUE_HI 88
 byte grassHues[6];
 
 void setGrass() {
@@ -165,6 +180,7 @@ void setGrass() {
   isKiller = false;
   FOREACH_FACE(f) {
     grassHues[f] = GRASS_HUE_LO + random(GRASS_HUE_HI - GRASS_HUE_LO);
+    magmaFaces[f] = false;
   }
 }
 
@@ -182,18 +198,35 @@ void hideDisplay() {
 
 void deathDisplay() {
 
-  if (!isKiller) {
-    byte fireFace = random(5);
+  //first figure out which faces should be magma'd
+  if (isKiller) {//the center of the volcano
     FOREACH_FACE(f) {
-      if (f == fireFace) {
-        setColorOnFace(RED, f);
-      } else {
-        setColorOnFace(makeColorHSB(grassHues[f], 255, 150), f);
+      magmaFaces[f] = true;
+    }
+  } else {//things that are not the volcano
+    //look around to see if you neighbor the volcano
+    FOREACH_FACE(f) {
+      if (!isValueReceivedOnFaceExpired(f)) {//neighbor!
+        if (getIsKiller(getLastValueReceivedOnFace(f)) == true) {//this neighbor is the volcano itself
+          magmaFaces[f] = true;
+          magmaFaces[(f + 5) % 6] = true;
+          magmaFaces[(f + 1) % 6] = true;
+        }
       }
     }
-  } else {
-    setColor(RED);
-    setColorOnFace(ORANGE, random(5));
-    setColorOnFace(ORANGE, random(5));
+  }
+
+  //now do the graphics
+  byte timerProgress = map(eruptionTimer.getRemaining(), 0, ERUPTION_TIME, 0, 255); //goes from 255 at the beginning to 0 at the end
+  timerProgress = (timerProgress * 2) - ((timerProgress * timerProgress) / 255);
+
+  byte brightnessRumble = timerProgress / 2;//As the explosion happens, the amount of random reduction in brightness reduces
+
+  FOREACH_FACE(f) {
+    if (magmaFaces[f] == true) {
+      setColorOnFace(makeColorHSB(random(25), 255 - timerProgress, 255 - random(brightnessRumble)), f);
+    } else {
+      setColorOnFace(makeColorHSB(grassHues[f], 255 - timerProgress, map(timerProgress, 0, 255, 100, 255 - random(brightnessRumble))), f);
+    }
   }
 }
