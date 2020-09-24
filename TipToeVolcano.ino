@@ -35,8 +35,10 @@ void loop() {
       break;
   }
 
-  byte sendData = (isKiller << 2) | (signalState);
-  setValueSentOnAllFaces(sendData);
+  FOREACH_FACE(f) {
+    byte sendData = (magmaFaces[f] << 3) | (isKiller << 2) | (signalState);
+    setValueSentOnFace(sendData, f);
+  }
 
   buttonSingleClicked();
   buttonDoubleClicked();
@@ -142,6 +144,10 @@ byte getIsKiller(byte data) {
   return ((data >> 2) & 1);
 }
 
+byte getIsMagma(byte data) {
+  return ((data >> 3) & 1);
+}
+
 void setupDisplay() {
   byte magmaBrightness;
   byte grassBrightness;
@@ -196,9 +202,12 @@ void hideDisplay() {
   }
 }
 
+Timer magmaSpreadTimer;
+#define MAGMA_INTERVAL 2000
+
 void deathDisplay() {
 
-  //first figure out which faces should be magma'd
+  //first figure out which faces should be automatically magma'd
   if (isKiller) {//the center of the volcano
     FOREACH_FACE(f) {
       magmaFaces[f] = true;
@@ -216,6 +225,53 @@ void deathDisplay() {
     }
   }
 
+  //do magma spreading stuff!
+  if (magmaSpreadTimer.isExpired()) {
+    magmaSpreadTimer.set(MAGMA_INTERVAL - random(500));
+
+    //let's evaluate our neighbors!
+    byte tempMagmaFaces[6] = {false, false, false, false, false, false};
+    FOREACH_FACE(f) {
+      byte magmaNeighbors = 0;
+      if (magmaFaces[f] == false) {//I am not magma yet!
+        if (magmaFaces[(f + 1) % 6] == true) {
+          magmaNeighbors++;
+        }
+        if (magmaFaces[(f + 5) % 6] == true) {
+          magmaNeighbors++;
+        }
+        if (!isValueReceivedOnFaceExpired(f)) {//neighbor!
+          if (getIsMagma(getLastValueReceivedOnFace(f)) == true) {//this neighbor is magma
+            magmaNeighbors++;
+          }
+        }
+
+        //now that we've evaluated the neighbors, should we become magma?
+        switch (magmaNeighbors) {
+          case 0:
+            break;
+          case 1:
+            if (random(2) == 0) {//ok chance of becoming magma
+              tempMagmaFaces[f] = true;
+            }
+            break;
+            //          case 2:
+            //            if (random(8) == 0) {//low chance of becoming magma
+            //              tempMagmaFaces[f] = true;
+            //            }
+            //            break;
+        }
+      }
+    }//end checking loop
+
+    //now actually apply the new magma faces
+    FOREACH_FACE(f) {
+      if (tempMagmaFaces[f] == true) {
+        magmaFaces[f] = true;
+      }
+    }
+  }
+
   //now do the graphics
   byte timerProgress = map(eruptionTimer.getRemaining(), 0, ERUPTION_TIME, 0, 255); //goes from 255 at the beginning to 0 at the end
   timerProgress = (timerProgress * 2) - ((timerProgress * timerProgress) / 255);
@@ -224,7 +280,11 @@ void deathDisplay() {
 
   FOREACH_FACE(f) {
     if (magmaFaces[f] == true) {
-      setColorOnFace(makeColorHSB(random(25), 255 - timerProgress, 255 - random(brightnessRumble)), f);
+      if (isKiller) {
+        setColorOnFace(makeColorHSB(random(31), 255 - timerProgress, 255 - random(brightnessRumble / 2)), f);
+      } else {
+        setColorOnFace(makeColorHSB(random(23), 255 - timerProgress, 255 - random(brightnessRumble)), f);
+      }
     } else {
       setColorOnFace(makeColorHSB(grassHues[f], 255 - timerProgress, map(timerProgress, 0, 255, 100, 255 - random(brightnessRumble))), f);
     }
