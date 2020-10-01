@@ -148,33 +148,59 @@ byte getIsMagma(byte data) {
   return ((data >> 3) & 1);
 }
 
-void setupDisplay() {
-  byte magmaBrightness;
-  byte grassBrightness;
+#define SETUP_ANIM_INTERVAL 200
 
-  if (isMagma) {
-    magmaBrightness = 255;
-    grassBrightness = 100;
-  } else {
-    magmaBrightness = 100;
-    grassBrightness = 255;
-  }
+void setupDisplay() {
+
+  setColor(OFF);
+  byte whichFrame = (millis() % (SETUP_ANIM_INTERVAL * 6)) / SETUP_ANIM_INTERVAL;
+
+
+  Color color1;
+  Color color2;
 
   if (isChaos) {
-    setColorOnFace(dim(RED, random(155) + 100), 0);
-    setColorOnFace(dim(RED, random(155) + 100), 2);
-    setColorOnFace(dim(RED, random(155) + 100), 4);
-    setColorOnFace(dim(GREEN, random(155) + 100), 1);
-    setColorOnFace(dim(GREEN, random(155) + 100), 3);
-    setColorOnFace(dim(GREEN, random(155) + 100), 5);
+    color1 = GREEN;
+    color2 = RED;
   } else {
-    setColorOnFace(dim(RED, magmaBrightness), 0);
-    setColorOnFace(dim(RED, magmaBrightness), 2);
-    setColorOnFace(dim(RED, magmaBrightness), 4);
-    setColorOnFace(dim(GREEN, grassBrightness), 1);
-    setColorOnFace(dim(GREEN, grassBrightness), 3);
-    setColorOnFace(dim(GREEN, grassBrightness), 5);
+    if (isMagma) {
+      color1 = RED;
+      color2 = RED;
+    } else {
+      color1 = GREEN;
+      color2 = GREEN;
+    }
   }
+
+  setColorOnFace(color1, whichFrame);
+  setColorOnFace(color2, (whichFrame + 3) % 6);
+
+  //  byte magmaBrightness;
+  //  byte grassBrightness;
+  //
+  //  if (isMagma) {
+  //    magmaBrightness = 255;
+  //    grassBrightness = 100;
+  //  } else {
+  //    magmaBrightness = 100;
+  //    grassBrightness = 255;
+  //  }
+  //
+  //  if (isChaos) {
+  //    setColorOnFace(dim(RED, random(155) + 100), 0);
+  //    setColorOnFace(dim(RED, random(155) + 100), 2);
+  //    setColorOnFace(dim(RED, random(155) + 100), 4);
+  //    setColorOnFace(dim(GREEN, random(155) + 100), 1);
+  //    setColorOnFace(dim(GREEN, random(155) + 100), 3);
+  //    setColorOnFace(dim(GREEN, random(155) + 100), 5);
+  //  } else {
+  //    setColorOnFace(dim(RED, magmaBrightness), 0);
+  //    setColorOnFace(dim(RED, magmaBrightness), 2);
+  //    setColorOnFace(dim(RED, magmaBrightness), 4);
+  //    setColorOnFace(dim(GREEN, grassBrightness), 1);
+  //    setColorOnFace(dim(GREEN, grassBrightness), 3);
+  //    setColorOnFace(dim(GREEN, grassBrightness), 5);
+  //  }
 }
 
 #define GRASS_HUE_LO 56
@@ -203,7 +229,7 @@ void hideDisplay() {
 }
 
 Timer magmaSpreadTimer;
-#define MAGMA_INTERVAL 2000
+#define MAGMA_INTERVAL 1000
 
 void deathDisplay() {
 
@@ -213,16 +239,16 @@ void deathDisplay() {
       magmaFaces[f] = true;
     }
   } else {//things that are not the volcano
-    //look around to see if you neighbor the volcano
-    FOREACH_FACE(f) {
-      if (!isValueReceivedOnFaceExpired(f)) {//neighbor!
-        if (getIsKiller(getLastValueReceivedOnFace(f)) == true) {//this neighbor is the volcano itself
-          magmaFaces[f] = true;
-          magmaFaces[(f + 5) % 6] = true;
-          magmaFaces[(f + 1) % 6] = true;
-        }
-      }
-    }
+    //    //look around to see if you neighbor the volcano
+    //    FOREACH_FACE(f) {
+    //      if (!isValueReceivedOnFaceExpired(f)) {//neighbor!
+    //        if (getIsKiller(getLastValueReceivedOnFace(f)) == true) {//this neighbor is the volcano itself
+    //          magmaFaces[f] = true;
+    //          magmaFaces[(f + 5) % 6] = true;
+    //          magmaFaces[(f + 1) % 6] = true;
+    //        }
+    //      }
+    //    }
   }
 
   //do magma spreading stuff!
