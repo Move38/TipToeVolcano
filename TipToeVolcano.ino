@@ -1,3 +1,19 @@
+/*
+ *  Tip-Toe Volcano
+ *  by Big Potato Games 2020
+ *  Lead development by Daniel King
+ *  Original game by Big Potato Games
+ *
+ *
+ *  --------------------
+ *  Blinks by Move38
+ *  Brought to life via Kickstarter 2018
+ *
+ *  @madewithblinks
+ *  www.move38.com
+ *  --------------------
+ */
+
 enum signalStates {SETUP, HIDE, DEATH, RESET};
 byte signalState = SETUP;
 
