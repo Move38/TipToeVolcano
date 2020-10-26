@@ -1,18 +1,18 @@
 /*
- *  Tip-Toe Volcano
- *  by Big Potato Games 2020
- *  Lead development by Daniel King
- *  Original game by Big Potato Games
- *
- *
- *  --------------------
- *  Blinks by Move38
- *  Brought to life via Kickstarter 2018
- *
- *  @madewithblinks
- *  www.move38.com
- *  --------------------
- */
+    Tip-Toe Volcano
+    by Big Potato Games 2020
+    Lead development by Daniel King
+    Original game by Big Potato Games
+
+
+    --------------------
+    Blinks by Move38
+    Brought to life via Kickstarter 2018
+
+    @madewithblinks
+    www.move38.com
+    --------------------
+*/
 
 enum signalStates {SETUP, HIDE, DEATH, RESET};
 byte signalState = SETUP;
@@ -165,58 +165,30 @@ byte getIsMagma(byte data) {
 }
 
 #define SETUP_ANIM_INTERVAL 200
+Timer setupAnimTimer;
+byte setupAnimFace = 0;
+byte randomAnimFace = 1;
 
 void setupDisplay() {
-
-  setColor(OFF);
-  byte whichFrame = (millis() % (SETUP_ANIM_INTERVAL * 6)) / SETUP_ANIM_INTERVAL;
-
-
-  Color color1;
-  Color color2;
-
-  if (isChaos) {
-    color1 = GREEN;
-    color2 = RED;
-  } else {
-    if (isMagma) {
-      color1 = RED;
-      color2 = RED;
-    } else {
-      color1 = GREEN;
-      color2 = GREEN;
-    }
+  //deal with the timer
+  if (setupAnimTimer.isExpired()) {
+    setupAnimTimer.set(SETUP_ANIM_INTERVAL);
+    setupAnimFace = (setupAnimFace + 1) % 6;
   }
 
-  setColorOnFace(color1, whichFrame);
-  setColorOnFace(color2, (whichFrame + 3) % 6);
+  setColor(OFF);
 
-  //  byte magmaBrightness;
-  //  byte grassBrightness;
-  //
-  //  if (isMagma) {
-  //    magmaBrightness = 255;
-  //    grassBrightness = 100;
-  //  } else {
-  //    magmaBrightness = 100;
-  //    grassBrightness = 255;
-  //  }
-  //
-  //  if (isChaos) {
-  //    setColorOnFace(dim(RED, random(155) + 100), 0);
-  //    setColorOnFace(dim(RED, random(155) + 100), 2);
-  //    setColorOnFace(dim(RED, random(155) + 100), 4);
-  //    setColorOnFace(dim(GREEN, random(155) + 100), 1);
-  //    setColorOnFace(dim(GREEN, random(155) + 100), 3);
-  //    setColorOnFace(dim(GREEN, random(155) + 100), 5);
-  //  } else {
-  //    setColorOnFace(dim(RED, magmaBrightness), 0);
-  //    setColorOnFace(dim(RED, magmaBrightness), 2);
-  //    setColorOnFace(dim(RED, magmaBrightness), 4);
-  //    setColorOnFace(dim(GREEN, grassBrightness), 1);
-  //    setColorOnFace(dim(GREEN, grassBrightness), 3);
-  //    setColorOnFace(dim(GREEN, grassBrightness), 5);
-  //  }
+  if (isMagma || isChaos) {
+    setColorOnFace(RED, (setupAnimFace + 1) % 6);
+    setColorOnFace(RED, (setupAnimFace + 2) % 6);
+    setColorOnFace(RED, (setupAnimFace + 4) % 6);
+    setColorOnFace(RED, (setupAnimFace + 5) % 6);
+  }
+
+  if (!isMagma || isChaos) {
+    setColorOnFace(GREEN, setupAnimFace);
+    setColorOnFace(GREEN, (setupAnimFace + 3) % 6);
+  }
 }
 
 #define GRASS_HUE_LO 56
