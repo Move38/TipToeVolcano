@@ -77,7 +77,7 @@ void setupLoop() {
 
   }
 
-  if (buttonMultiClicked() && buttonClickCount() == 4) {
+  if (buttonMultiClicked() && buttonClickCount() == 3) {
     isChaos = !isChaos;
   }
 
